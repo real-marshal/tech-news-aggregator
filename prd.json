@@ -138,7 +138,7 @@
         "US005",
         "US006"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US008",
