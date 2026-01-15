@@ -14,3 +14,10 @@ export {
   type RedditPost,
   type RedditScrapedItem,
 } from './reddit';
+
+export {
+  scrapeLobsters,
+  LobstersScraperError,
+  type LobstersStory,
+  type LobstersScrapedItem,
+} from './lobsters';
