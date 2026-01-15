@@ -1,0 +1,522 @@
+{
+  "project": "tech-news-aggregator",
+  "userStories": [
+    {
+      "id": "US001",
+      "title": "Define TypeScript types for news data schema",
+      "priority": 0,
+      "spec": "specs/SPEC.md",
+      "description": "Create TypeScript interfaces for the JSON schema: NewsItem, Source, Analysis, DailyDigest, and Category types based on the specification.",
+      "acceptanceCriteria": [
+        "NewsItem interface with id, slug, title, url, category, sources, hotness_score, summary, analysis",
+        "Source interface with name, url, points/upvotes, comments, optional subreddit",
+        "Analysis interface with extended_summary and sentiment",
+        "DailyDigest interface with date, generated_at, item_count, items",
+        "Category type union: 'ai-ml' | 'development' | 'infrastructure' | 'career' | 'other'"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [],
+      "passes": true
+    },
+    {
+      "id": "US002",
+      "title": "Set up project structure and base Next.js config",
+      "priority": 0,
+      "spec": "specs/SPEC.md",
+      "description": "Configure Next.js for static export, set up TailwindCSS, and create the base file structure per CLAUDE.md conventions.",
+      "acceptanceCriteria": [
+        "next.config.js configured for static export (output: 'export')",
+        "TailwindCSS configured with shadcn/ui",
+        "Directory structure: src/app, src/components, src/lib, src/types",
+        "Base layout.tsx with system theme detection"
+      ],
+      "verification": {
+        "build": "bun run build"
+      },
+      "dependsOn": [],
+      "passes": false
+    },
+    {
+      "id": "US003",
+      "title": "Implement Hacker News scraper",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Create a scraper module to fetch top 25 stories from Hacker News (excluding Show/Ask/Jobs), extracting title, URL, points, and comments.",
+      "acceptanceCriteria": [
+        "Fetches top 25 stories by points",
+        "Filters out Show HN, Ask HN, and Jobs posts",
+        "Returns normalized data matching Source interface",
+        "Handles API errors gracefully"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US001"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US004",
+      "title": "Implement Reddit scraper",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Create a scraper module to fetch top 25 posts from each specified subreddit (r/programming, r/webdev, r/machinelearning, r/netsec, r/devops, r/singularity, r/coding, r/artificial, r/startups, r/cscareerquestions, r/experienceddevs) with 100+ upvotes.",
+      "acceptanceCriteria": [
+        "Fetches from all 11 specified subreddits",
+        "Filters to posts with 100+ upvotes",
+        "Returns top 25 per subreddit",
+        "Returns normalized data matching Source interface",
+        "Handles API rate limits and errors"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US001"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US005",
+      "title": "Implement Lobste.rs scraper",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Create a scraper module to fetch top 25 stories from Lobste.rs by score.",
+      "acceptanceCriteria": [
+        "Fetches top 25 stories by score",
+        "Returns normalized data matching Source interface",
+        "Handles API errors gracefully"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US001"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US006",
+      "title": "Implement dev.to scraper",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Create a scraper module to fetch top 25 articles from dev.to by reactions.",
+      "acceptanceCriteria": [
+        "Fetches top 25 articles by reactions",
+        "Returns normalized data matching Source interface",
+        "Handles API errors gracefully"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US001"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US007",
+      "title": "Create scraper orchestration module",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Create a module that orchestrates all scrapers, runs them in parallel, and aggregates results with error handling for individual source failures.",
+      "acceptanceCriteria": [
+        "Runs all 4 scrapers concurrently",
+        "Continues if individual sources fail",
+        "Aggregates all results into unified format",
+        "Logs which sources succeeded/failed"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US003",
+        "US004",
+        "US005",
+        "US006"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US008",
+      "title": "Create Claude client wrapper",
+      "priority": 0,
+      "spec": "specs/SPEC.md",
+      "description": "Set up Claude Agent SDK client with proper configuration for the processing pipeline.",
+      "acceptanceCriteria": [
+        "Claude client initialized with ANTHROPIC_API_KEY",
+        "Uses Claude Opus model as specified",
+        "Web search tool available for selective use",
+        "Error handling for API failures"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US001"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US009",
+      "title": "Implement Claude deduplication and categorization",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Create Claude processing function to deduplicate stories across sources and categorize into AI/ML, Development, Infrastructure, Career, or Other.",
+      "acceptanceCriteria": [
+        "Identifies duplicate stories across sources",
+        "Merges duplicates with source attribution",
+        "Assigns exactly one category per item",
+        "Returns structured data matching types"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US008"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US010",
+      "title": "Implement Claude summary generation",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Create Claude processing function to generate 2-3 sentence summaries, extended analysis, and community sentiment for each news item.",
+      "acceptanceCriteria": [
+        "Generates concise 2-3 sentence summary",
+        "Generates extended analysis paragraph",
+        "Generates community sentiment summary based on top comments",
+        "Targets tech professional audience (information-dense)"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US008",
+        "US009"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US011",
+      "title": "Implement hotness score calculation",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Implement the hotness algorithm: (upvotes * 0.5) + (comments * 0.5) with cross-source normalization.",
+      "acceptanceCriteria": [
+        "Calculates hotness using specified formula",
+        "Normalizes scores across different sources",
+        "Handles merged items from multiple sources",
+        "Sorts final output by hotness score"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US001"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US012",
+      "title": "Create daily digest JSON generator",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Create module to generate the final JSON file matching the schema, with date-stamped filename pattern data/YYYY-MM-DD.json.",
+      "acceptanceCriteria": [
+        "Generates JSON matching DailyDigest schema",
+        "Creates slug from title for each item",
+        "Outputs to data/YYYY-MM-DD.json",
+        "Limits to 30-50 items per digest",
+        "File size under 500KB"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US001",
+        "US011"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US013",
+      "title": "Create full processing pipeline script",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Create the main cron job script that orchestrates scraping, Claude processing, and JSON generation end-to-end.",
+      "acceptanceCriteria": [
+        "Runs complete pipeline: scrape -> process -> generate",
+        "Handles partial failures gracefully",
+        "Logs progress and errors",
+        "Exits with appropriate status codes"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US007",
+        "US009",
+        "US010",
+        "US012"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US014",
+      "title": "Build NewsCard component (collapsed state)",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Create the NewsCard component showing category chip, sources, headline, summary, and engagement metrics in collapsed state.",
+      "acceptanceCriteria": [
+        "Displays category chip",
+        "Shows source attribution",
+        "Prominent headline title",
+        "2-3 sentence summary",
+        "Upvote and comment counts",
+        "Expand button"
+      ],
+      "verification": {
+        "build": "bun run build"
+      },
+      "dependsOn": [
+        "US002",
+        "US001"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US015",
+      "title": "Build NewsCard component (expanded state)",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Extend NewsCard with expanded state showing Claude's extended analysis, community sentiment, and action links.",
+      "acceptanceCriteria": [
+        "Toggle between collapsed/expanded state",
+        "Shows extended analysis section",
+        "Shows community sentiment",
+        "Read Article link to original URL",
+        "View Discussion link to source discussion"
+      ],
+      "verification": {
+        "build": "bun run build"
+      },
+      "dependsOn": [
+        "US014"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US016",
+      "title": "Build category filter chips",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Create filter chip components for category filtering with 'All' as default.",
+      "acceptanceCriteria": [
+        "Filter chips for: All, AI/ML, Development, Infrastructure, Career, Other",
+        "Mixed feed by default (All selected)",
+        "Single category selection",
+        "Updates displayed items when filter changes"
+      ],
+      "verification": {
+        "build": "bun run build"
+      },
+      "dependsOn": [
+        "US002"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US017",
+      "title": "Build day navigation component",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Create navigation component for 7-day archive: Today, Yesterday, 2 days ago, etc.",
+      "acceptanceCriteria": [
+        "Shows Today, Yesterday, 2-7 days ago options",
+        "Highlights current selection",
+        "Links to correct date routes",
+        "Handles missing days gracefully"
+      ],
+      "verification": {
+        "build": "bun run build"
+      },
+      "dependsOn": [
+        "US002"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US018",
+      "title": "Create home page (today's digest)",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Build the main page at / showing today's digest with filters and card list.",
+      "acceptanceCriteria": [
+        "Loads today's JSON data",
+        "Renders category filters",
+        "Renders day navigation",
+        "Renders list of NewsCards sorted by hotness",
+        "Shows 'No items today' for empty categories"
+      ],
+      "verification": {
+        "build": "bun run build"
+      },
+      "dependsOn": [
+        "US014",
+        "US016",
+        "US017"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US019",
+      "title": "Create date-specific digest page",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Build the dynamic route /[date] for viewing specific day's digest with same layout as home.",
+      "acceptanceCriteria": [
+        "Loads JSON for specified date",
+        "Same UI as home page",
+        "Handles missing dates gracefully",
+        "Supports deep links with anchor (#item-slug)"
+      ],
+      "verification": {
+        "build": "bun run build"
+      },
+      "dependsOn": [
+        "US018"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US020",
+      "title": "Implement system theme detection",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Add dark/light theme support based on OS preference.",
+      "acceptanceCriteria": [
+        "Detects OS dark/light preference",
+        "Applies appropriate theme",
+        "No manual toggle (system only)",
+        "Works with all components"
+      ],
+      "verification": {
+        "build": "bun run build"
+      },
+      "dependsOn": [
+        "US002"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US021",
+      "title": "Create GitHub Actions workflow for deployment",
+      "priority": 2,
+      "spec": "specs/SPEC.md",
+      "description": "Set up GitHub Actions workflow triggered on push to data/ directory that builds and deploys to GitHub Pages.",
+      "acceptanceCriteria": [
+        "Triggers on push to data/ directory",
+        "Installs dependencies with Bun",
+        "Builds Next.js static export",
+        "Deploys to GitHub Pages",
+        "Build time under 2 minutes"
+      ],
+      "verification": {
+        "build": "bun run build"
+      },
+      "dependsOn": [
+        "US019"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US022",
+      "title": "Create static generation for 7-day window",
+      "priority": 2,
+      "spec": "specs/SPEC.md",
+      "description": "Configure Next.js static generation to only build pages for dates with JSON files in last 7 days.",
+      "acceptanceCriteria": [
+        "Generates static pages for available dates",
+        "Only includes last 7 days",
+        "Skips missing days without error",
+        "Generates home page with today's data"
+      ],
+      "verification": {
+        "build": "bun run build"
+      },
+      "dependsOn": [
+        "US019",
+        "US012"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US023",
+      "title": "Mobile-responsive layout implementation",
+      "priority": 1,
+      "spec": "specs/SPEC.md",
+      "description": "Ensure all components are mobile-first with proper responsive breakpoints.",
+      "acceptanceCriteria": [
+        "Mobile-first design",
+        "Cards stack properly on mobile",
+        "Filter chips wrap appropriately",
+        "Day navigation works on small screens",
+        "Readable typography at all sizes"
+      ],
+      "verification": {
+        "build": "bun run build"
+      },
+      "dependsOn": [
+        "US018"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US024",
+      "title": "Add lint and typecheck CI verification",
+      "priority": 2,
+      "spec": "specs/SPEC.md",
+      "description": "Ensure all code passes lint and typecheck as part of verification.",
+      "acceptanceCriteria": [
+        "bun run lint passes with no errors",
+        "bun run typecheck passes with no errors",
+        "Can be run in CI"
+      ],
+      "verification": {
+        "build": "bun run typecheck",
+        "lint": "bun run lint"
+      },
+      "dependsOn": [
+        "US002"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US025",
+      "title": "End-to-end pipeline test",
+      "priority": 2,
+      "spec": "specs/SPEC.md",
+      "description": "Test the complete pipeline from scraping through to static site generation.",
+      "acceptanceCriteria": [
+        "Pipeline runs without errors",
+        "JSON file generated correctly",
+        "Static site builds from JSON",
+        "All pages render without errors",
+        "Page load under 1 second"
+      ],
+      "verification": {
+        "build": "bun run build"
+      },
+      "dependsOn": [
+        "US013",
+        "US022"
+      ],
+      "passes": false
+    }
+  ]
+}
