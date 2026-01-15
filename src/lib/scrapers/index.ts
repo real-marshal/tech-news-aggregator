@@ -21,3 +21,10 @@ export {
   type LobstersStory,
   type LobstersScrapedItem,
 } from './lobsters';
+
+export {
+  scrapeDevto,
+  DevtoScraperError,
+  type DevtoArticle,
+  type DevtoScrapedItem,
+} from './devto';
