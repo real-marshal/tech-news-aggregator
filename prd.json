@@ -178,7 +178,7 @@
       "dependsOn": [
         "US008"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US010",
@@ -199,7 +199,7 @@
         "US008",
         "US009"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US011",
@@ -219,7 +219,7 @@
       "dependsOn": [
         "US001"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US012",
@@ -241,7 +241,7 @@
         "US001",
         "US011"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US013",
@@ -264,7 +264,7 @@
         "US010",
         "US012"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US014",
@@ -287,7 +287,7 @@
         "US002",
         "US001"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US015",
@@ -308,7 +308,7 @@
       "dependsOn": [
         "US014"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US016",
@@ -328,7 +328,7 @@
       "dependsOn": [
         "US002"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US017",
@@ -348,7 +348,7 @@
       "dependsOn": [
         "US002"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US018",
@@ -371,7 +371,7 @@
         "US016",
         "US017"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US019",
@@ -391,7 +391,7 @@
       "dependsOn": [
         "US018"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US020",
@@ -411,7 +411,7 @@
       "dependsOn": [
         "US002"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US021",
@@ -432,7 +432,7 @@
       "dependsOn": [
         "US019"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US022",
@@ -453,7 +453,7 @@
         "US019",
         "US012"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US023",
@@ -474,7 +474,7 @@
       "dependsOn": [
         "US018"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US024",
@@ -494,7 +494,7 @@
       "dependsOn": [
         "US002"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US025",
@@ -516,6 +516,42 @@
         "US013",
         "US022"
       ],
+      "passes": true
+    },
+    {
+      "id": "US026",
+      "title": "Write README.md documenting how to use this project",
+      "priority": 2,
+      "description": "Create comprehensive README.md documentation covering project overview, setup instructions, usage, and development guidelines.",
+      "acceptanceCriteria": [
+        "Project overview and purpose explained",
+        "Installation and setup instructions with Bun",
+        "Environment variables documented (ANTHROPIC_API_KEY)",
+        "Usage instructions for running the pipeline",
+        "Development commands documented (build, lint, typecheck)",
+        "Project structure overview"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [],
+      "passes": true
+    },
+    {
+      "id": "US027",
+      "title": "Review gitignore, update if necessary, make sure the repo doesn't contain gitignored files",
+      "priority": 3,
+      "description": "Audit the .gitignore file for completeness, ensure common patterns are covered (node_modules, .env, build artifacts, etc.), and verify no currently tracked files should be ignored.",
+      "acceptanceCriteria": [
+        ".gitignore covers all appropriate patterns (node_modules, .next, out, .env*, etc.)",
+        "No tracked files match gitignore patterns",
+        "Remove any accidentally committed files that should be ignored",
+        "Verify build/cache directories are properly ignored"
+      ],
+      "verification": {
+        "build": "git status"
+      },
+      "dependsOn": [],
       "passes": false
     }
   ]

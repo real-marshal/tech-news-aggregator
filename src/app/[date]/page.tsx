@@ -1,12 +1,24 @@
 import fs from 'fs';
 import path from 'path';
+import { notFound } from 'next/navigation';
 import { DigestView } from '@/components/news';
 import type { DailyDigest } from '@/types';
+
+interface DatePageProps {
+  params: Promise<{
+    date: string;
+  }>;
+}
 
 // Validate date format (YYYY-MM-DD)
 function isValidDateFormat(date: string): boolean {
   const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  return dateRegex.test(date);
+  if (!dateRegex.test(date)) {
+    return false;
+  }
+  // Also check if it's a valid date
+  const parsed = new Date(date);
+  return !isNaN(parsed.getTime());
 }
 
 // Get today's date in YYYY-MM-DD format
@@ -60,33 +72,30 @@ function loadDigestSync(date: string): DailyDigest | null {
   }
 }
 
-export default function HomePage() {
-  // Get available dates and load the most recent one
-  const availableDates = getAvailableDates();
-  const latestDate = availableDates[0];
+// Generate static params for all available dates
+export function generateStaticParams(): Array<{ date: string }> {
+  const dates = getAvailableDates();
+  return dates.map((date) => ({ date }));
+}
 
-  // Load the most recent digest
-  const digest = latestDate ? loadDigestSync(latestDate) : null;
+export default async function DatePage({ params }: DatePageProps) {
+  const { date } = await params;
 
-  // Handle no data available
-  if (!digest) {
-    return (
-      <main className="container py-8">
-        <header className="mb-8">
-          <h1 className="text-2xl font-bold">Tech Digest</h1>
-          <p className="text-muted-foreground">Daily curated tech news</p>
-        </header>
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <p className="text-lg text-muted-foreground">
-            No digest data available
-          </p>
-          <p className="text-sm text-muted-foreground/70 mt-1">
-            Check back later for new content.
-          </p>
-        </div>
-      </main>
-    );
+  // Validate date format
+  if (!isValidDateFormat(date)) {
+    notFound();
   }
+
+  // Load digest for the requested date
+  const digest = loadDigestSync(date);
+
+  // Handle missing data
+  if (!digest) {
+    notFound();
+  }
+
+  // Get available dates for navigation
+  const availableDates = getAvailableDates();
 
   return <DigestView digest={digest} availableDates={availableDates} />;
 }
