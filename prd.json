@@ -552,7 +552,7 @@
         "build": "git status"
       },
       "dependsOn": [],
-      "passes": false
+      "passes": true
     }
   ]
 }
