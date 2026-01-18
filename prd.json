@@ -553,6 +553,26 @@
       },
       "dependsOn": [],
       "passes": true
+    },
+    {
+      "id": "US028",
+      "title": "Switch Claude SDK to use local login instead of API key",
+      "priority": 2,
+      "description": "Change the Claude Agent SDK configuration to use local Claude login credentials instead of requiring ANTHROPIC_API_KEY environment variable. This allows using the Claude subscription instead of paying for API usage.",
+      "acceptanceCriteria": [
+        "Remove ANTHROPIC_API_KEY requirement from Claude client",
+        "Configure Claude Agent SDK to use local login authentication",
+        "Update environment variable documentation in README.md",
+        "Update CLAUDE.md to reflect new authentication method",
+        "Verify pipeline works with local login"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US008"
+      ],
+      "passes": true
     }
   ]
 }

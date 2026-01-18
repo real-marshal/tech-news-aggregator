@@ -18,12 +18,12 @@ A Next.js application that aggregates tech news from multiple sources (Hacker Ne
 - **Framework**: Next.js 15 (App Router, static export)
 - **Language**: TypeScript
 - **Styling**: TailwindCSS + shadcn/ui components
-- **AI**: Claude via [@anthropic-ai/sdk](https://www.npmjs.com/package/@anthropic-ai/sdk)
+- **AI**: Claude via [@anthropic-ai/claude-agent-sdk](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk)
 
 ## Prerequisites
 
 - [Bun](https://bun.sh) (latest version)
-- Anthropic API key for Claude access
+- [Claude Code](https://claude.ai/code) installed and authenticated (recommended), or an Anthropic API key
 
 ## Installation
 
@@ -38,17 +38,38 @@ A Next.js application that aggregates tech news from multiple sources (Hacker Ne
    bun install
    ```
 
-3. Create environment variables:
+3. Authenticate with Claude (choose one method):
+
+   **Option A: Claude Code Login (Recommended)**
+
+   This uses your Claude subscription (Pro/Max) instead of API credits:
+   ```bash
+   # Install Claude Code if not already installed
+   curl -fsSL https://claude.ai/install.sh | bash
+
+   # Login to Claude
+   claude
+   # Follow the prompts to authenticate
+   ```
+
+   **Option B: API Key**
+
+   For pay-as-you-go API usage:
    ```bash
    # Create .env.local file
    echo "ANTHROPIC_API_KEY=your-api-key-here" > .env.local
    ```
 
-## Environment Variables
+## Authentication
+
+The application uses the Claude Agent SDK which automatically detects authentication:
+
+1. **Claude Code Login** (primary): If you've run `claude` and logged in, the SDK uses your subscription authentication automatically.
+2. **API Key** (fallback): If Claude Code isn't authenticated, it falls back to the `ANTHROPIC_API_KEY` environment variable.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Your Anthropic API key for Claude access |
+| `ANTHROPIC_API_KEY` | No | Fallback API key (only needed if not using Claude Code login) |
 
 ## Usage
 

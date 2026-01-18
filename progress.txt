@@ -34,3 +34,11 @@
 2026-01-15T23:41:53.321Z: ✅ US025 completed in iteration 1
 2026-01-16T11:17:25.619Z: Starting US026: Write README.md documenting how to use this project
 2026-01-16T11:18:48.584Z: ✅ US026 completed in iteration 1
+2026-01-16T11:20:14.573Z: ✅ US027 completed in iteration 1
+2026-01-18T11:36:34.556Z: Starting US028: Switch Claude SDK to use local login instead of API key
+2026-01-18T11:45:00.000Z: ✅ US028 completed in iteration 1
+  - Switched from @anthropic-ai/sdk to @anthropic-ai/claude-agent-sdk
+  - Rewrote ClaudeClient to use the Agent SDK's query() function
+  - SDK now uses Claude Code login authentication (run `claude` to login)
+  - Falls back to ANTHROPIC_API_KEY if Claude Code not authenticated
+  - Updated README.md and CLAUDE.md documentation

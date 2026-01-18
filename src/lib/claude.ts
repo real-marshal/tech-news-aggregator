@@ -1,34 +1,26 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { query } from '@anthropic-ai/claude-agent-sdk';
 import type {
-  Message,
-  MessageParam,
-  Tool,
-  ContentBlock,
-  TextBlock,
-  ToolUseBlock,
-} from '@anthropic-ai/sdk/resources/messages';
+  SDKMessage,
+  SDKAssistantMessage,
+  SDKResultMessage,
+} from '@anthropic-ai/claude-agent-sdk';
 
-const MODEL = 'claude-3-opus-20240229';
-const MAX_TOKENS = 4096;
+const MODEL = 'claude-sonnet-4-5';
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
 export interface ClaudeClientConfig {
-  apiKey?: string;
   maxRetries?: number;
 }
 
-export interface WebSearchResult {
-  title: string;
-  url: string;
-  snippet: string;
+export interface MessageParam {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
-export interface WebSearchToolInput {
-  query: string;
+export interface Message {
+  content: Array<{ type: 'text'; text: string }>;
 }
-
-export type WebSearchHandler = (query: string) => Promise<WebSearchResult[]>;
 
 export class ClaudeClientError extends Error {
   constructor(
@@ -41,59 +33,23 @@ export class ClaudeClientError extends Error {
   }
 }
 
-export const webSearchTool: Tool = {
-  name: 'web_search',
-  description:
-    'Search the web for current information. Use this tool selectively for top stories or when additional context is needed to understand a news item.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      query: {
-        type: 'string',
-        description: 'The search query to look up',
-      },
-    },
-    required: ['query'],
-  },
-};
-
-function isTextBlock(block: ContentBlock): block is TextBlock {
-  return block.type === 'text';
-}
-
-function isToolUseBlock(block: ContentBlock): block is ToolUseBlock {
-  return block.type === 'tool_use';
-}
-
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function isAssistantMessage(message: SDKMessage): message is SDKAssistantMessage {
+  return message.type === 'assistant';
+}
+
+function isResultMessage(message: SDKMessage): message is SDKResultMessage {
+  return message.type === 'result';
+}
+
 export class ClaudeClient {
-  private client: Anthropic;
   private maxRetries: number;
-  private webSearchHandler: WebSearchHandler | null = null;
 
   constructor(config: ClaudeClientConfig = {}) {
-    const apiKey = config.apiKey ?? process.env.ANTHROPIC_API_KEY;
-
-    if (!apiKey) {
-      throw new ClaudeClientError(
-        'ANTHROPIC_API_KEY is required',
-        'MISSING_API_KEY'
-      );
-    }
-
-    this.client = new Anthropic({
-      apiKey,
-      maxRetries: 0, // We handle retries ourselves for better control
-    });
-
     this.maxRetries = config.maxRetries ?? MAX_RETRIES;
-  }
-
-  setWebSearchHandler(handler: WebSearchHandler): void {
-    this.webSearchHandler = handler;
   }
 
   async sendMessage(
@@ -104,33 +60,55 @@ export class ClaudeClient {
       maxTokens?: number;
     } = {}
   ): Promise<Message> {
-    const { systemPrompt, enableWebSearch = false, maxTokens = MAX_TOKENS } = options;
+    const { systemPrompt } = options;
 
-    const tools: Tool[] = enableWebSearch ? [webSearchTool] : [];
+    // Build the prompt from messages
+    const prompt = messages
+      .map((m) => (m.role === 'user' ? m.content : `Assistant: ${m.content}`))
+      .join('\n\n');
 
     let attempt = 0;
     let lastError: Error | undefined;
 
     while (attempt < this.maxRetries) {
       try {
-        const response = await this.client.messages.create({
-          model: MODEL,
-          max_tokens: maxTokens,
-          messages,
-          ...(systemPrompt && { system: systemPrompt }),
-          ...(tools.length > 0 && { tools }),
+        const textParts: string[] = [];
+
+        // Use the Claude Agent SDK query function
+        // It automatically uses Claude Code's local login if available,
+        // otherwise falls back to ANTHROPIC_API_KEY
+        const response = query({
+          prompt,
+          options: {
+            model: MODEL,
+            systemPrompt: systemPrompt
+              ? { type: 'preset', preset: 'claude_code', append: systemPrompt }
+              : undefined,
+            allowedTools: [], // No tools needed for text generation
+            permissionMode: 'bypassPermissions',
+          },
         });
 
-        // Handle tool use if web search was called
-        if (
-          enableWebSearch &&
-          this.webSearchHandler &&
-          response.stop_reason === 'tool_use'
-        ) {
-          return this.handleToolUse(response, messages, options);
+        for await (const message of response) {
+          if (isAssistantMessage(message) && message.message?.content) {
+            for (const block of message.message.content) {
+              if ('text' in block && typeof block.text === 'string') {
+                textParts.push(block.text);
+              }
+            }
+          } else if (isResultMessage(message)) {
+            if (message.subtype !== 'success') {
+              throw new ClaudeClientError(
+                `Query failed: ${message.subtype}`,
+                'QUERY_FAILED'
+              );
+            }
+          }
         }
 
-        return response;
+        return {
+          content: [{ type: 'text', text: textParts.join('') }],
+        };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         attempt++;
@@ -152,124 +130,58 @@ export class ClaudeClient {
     );
   }
 
-  private async handleToolUse(
-    response: Message,
-    originalMessages: MessageParam[],
-    options: {
-      systemPrompt?: string;
-      enableWebSearch?: boolean;
-      maxTokens?: number;
-    }
-  ): Promise<Message> {
-    const toolUseBlocks = response.content.filter(isToolUseBlock);
-    const toolResults: MessageParam['content'] = [];
-
-    for (const toolUse of toolUseBlocks) {
-      if (toolUse.name === 'web_search' && this.webSearchHandler) {
-        const input = toolUse.input as WebSearchToolInput;
-        try {
-          const results = await this.webSearchHandler(input.query);
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: toolUse.id,
-            content: JSON.stringify(results),
-          });
-        } catch (error) {
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: toolUse.id,
-            content: `Error performing web search: ${error instanceof Error ? error.message : String(error)}`,
-            is_error: true,
-          });
-        }
-      }
-    }
-
-    // Continue the conversation with tool results
-    const updatedMessages: MessageParam[] = [
-      ...originalMessages,
-      { role: 'assistant', content: response.content },
-      { role: 'user', content: toolResults },
-    ];
-
-    return this.sendMessage(updatedMessages, {
-      ...options,
-      enableWebSearch: false, // Prevent infinite loops
-    });
-  }
-
   async extractText(response: Message): Promise<string> {
-    const textBlocks = response.content.filter(isTextBlock);
-    return textBlocks.map((block) => block.text).join('\n');
+    return response.content
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
+      .join('\n');
   }
 
   private isRetryableError(error: unknown): boolean {
-    if (error instanceof Anthropic.APIError) {
-      // Retry on rate limits and server errors
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase();
       return (
-        error instanceof Anthropic.RateLimitError ||
-        error instanceof Anthropic.InternalServerError ||
-        error.status === 529 // Overloaded
+        message.includes('rate limit') ||
+        message.includes('overloaded') ||
+        message.includes('connection') ||
+        message.includes('timeout')
       );
     }
-
-    if (error instanceof Anthropic.APIConnectionError) {
-      return true;
-    }
-
     return false;
   }
 
   private wrapError(error: unknown): ClaudeClientError {
-    if (error instanceof Anthropic.AuthenticationError) {
-      return new ClaudeClientError(
-        'Invalid API key',
-        'AUTHENTICATION_ERROR',
-        error
-      );
-    }
-
-    if (error instanceof Anthropic.RateLimitError) {
-      return new ClaudeClientError(
-        'Rate limit exceeded',
-        'RATE_LIMIT_ERROR',
-        error
-      );
-    }
-
-    if (error instanceof Anthropic.BadRequestError) {
-      return new ClaudeClientError(
-        `Invalid request: ${error.message}`,
-        'BAD_REQUEST_ERROR',
-        error
-      );
-    }
-
-    if (error instanceof Anthropic.APIConnectionError) {
-      return new ClaudeClientError(
-        'Failed to connect to Claude API',
-        'CONNECTION_ERROR',
-        error
-      );
-    }
-
-    if (error instanceof Anthropic.InternalServerError) {
-      return new ClaudeClientError(
-        'Claude API server error',
-        'SERVER_ERROR',
-        error
-      );
-    }
-
-    if (error instanceof Anthropic.APIError) {
-      return new ClaudeClientError(
-        `API error: ${error.message}`,
-        'API_ERROR',
-        error
-      );
+    if (error instanceof ClaudeClientError) {
+      return error;
     }
 
     if (error instanceof Error) {
+      const message = error.message.toLowerCase();
+
+      if (message.includes('authentication') || message.includes('api key')) {
+        return new ClaudeClientError(
+          'Authentication failed. Please run "claude" to login or set ANTHROPIC_API_KEY.',
+          'AUTHENTICATION_ERROR',
+          error
+        );
+      }
+
+      if (message.includes('rate limit')) {
+        return new ClaudeClientError(
+          'Rate limit exceeded',
+          'RATE_LIMIT_ERROR',
+          error
+        );
+      }
+
+      if (message.includes('connection')) {
+        return new ClaudeClientError(
+          'Failed to connect to Claude',
+          'CONNECTION_ERROR',
+          error
+        );
+      }
+
       return new ClaudeClientError(
         `Unexpected error: ${error.message}`,
         'UNKNOWN_ERROR',
@@ -296,5 +208,3 @@ export function getClaudeClient(config?: ClaudeClientConfig): ClaudeClient {
 export function resetClaudeClient(): void {
   clientInstance = null;
 }
-
-export type { Message, MessageParam, Tool, ContentBlock, TextBlock, ToolUseBlock };

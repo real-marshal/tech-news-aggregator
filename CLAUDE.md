@@ -11,7 +11,7 @@ A Next.js application that displays the latest tech news across different catego
 - TypeScript
 - TailwindCSS
 - shadcn/ui components
-- Claude Agent SDK (@anthropic-ai/agent-sdk)
+- Claude Agent SDK (@anthropic-ai/claude-agent-sdk)
 
 ## Features
 
@@ -47,10 +47,15 @@ src/
 └── types/                  # TypeScript type definitions
 ```
 
-## Environment Variables
+## Authentication
+
+The project uses the Claude Agent SDK which supports two authentication methods:
+
+1. **Claude Code Login (Recommended)**: Run `claude` and login to use your Claude subscription
+2. **API Key (Fallback)**: Set `ANTHROPIC_API_KEY` environment variable
 
 ```
-ANTHROPIC_API_KEY=          # Claude API key (required)
+ANTHROPIC_API_KEY=          # Optional: Claude API key (fallback if not logged in via Claude Code)
 ```
 
 ## Caching Strategy
