@@ -673,6 +673,24 @@
         "US018"
       ],
       "passes": true
+    },
+    {
+      "id": "US034",
+      "title": "Fix Claude response JSON parse error in pipeline",
+      "priority": 1,
+      "description": "Pipeline fails with 'JSON Parse error: Expected '}'' when processing Claude responses. This regression was introduced by recent changes to the pipeline. Need to investigate and fix the JSON parsing logic.",
+      "acceptanceCriteria": [
+        "Pipeline successfully processes all scraped items without parse errors",
+        "Claude responses are correctly parsed as valid JSON",
+        "Add error handling for malformed JSON responses",
+        "Pipeline completes end-to-end successfully"
+      ],
+      "verification": {
+        "build": "bun run typecheck",
+        "test": "bun run pipeline"
+      },
+      "dependsOn": [],
+      "passes": true
     }
   ]
 }
