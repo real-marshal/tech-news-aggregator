@@ -159,16 +159,6 @@ export function NewsCard({ item, isExpanded = false, onToggleExpand }: NewsCardP
           id={`${item.slug}-content`}
           className="flex flex-col gap-3 sm:gap-4 border-t border-border pt-3 sm:pt-4"
         >
-          {/* Claude's Analysis Section */}
-          <div className="flex flex-col gap-1.5 sm:gap-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Claude&apos;s Analysis
-            </h3>
-            <p className="text-sm text-card-foreground leading-relaxed">
-              {item.analysis.extended_summary}
-            </p>
-          </div>
-
           {/* Community Sentiment Section */}
           <div className="flex flex-col gap-1.5 sm:gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

@@ -338,8 +338,7 @@ const SUMMARY_SYSTEM_PROMPT = `You are a tech news analyst writing for experienc
 
 For each news item, generate:
 1. A brief summary (2-3 sentences) suitable for quick scanning
-2. An extended analysis paragraph with deeper context and significance
-3. A community sentiment summary based on the provided comments
+2. A community sentiment summary based on the provided comments
 
 Guidelines:
 - Target audience: Tech professionals with deep technical knowledge
@@ -355,7 +354,6 @@ Output format: Return ONLY valid JSON matching this exact structure:
     {
       "id": "item_id",
       "summary": "2-3 sentence summary...",
-      "extended_summary": "Extended analysis paragraph...",
       "sentiment": "Community sentiment summary..."
     }
   ]
@@ -369,7 +367,6 @@ Important:
 interface SummaryResponseItem {
   id: string;
   summary: string;
-  extended_summary: string;
   sentiment: string;
 }
 
@@ -422,9 +419,6 @@ function parseSummaryResponse(responseText: string): SummaryResponse {
       }
       if (!item.summary || typeof item.summary !== 'string') {
         throw new Error('Item missing summary');
-      }
-      if (!item.extended_summary || typeof item.extended_summary !== 'string') {
-        throw new Error('Item missing extended_summary');
       }
       if (!item.sentiment || typeof item.sentiment !== 'string') {
         throw new Error('Item missing sentiment');
@@ -525,7 +519,6 @@ export async function generateSummaries(
             id: item.id,
             summary: item.summary,
             analysis: {
-              extended_summary: item.extended_summary,
               sentiment: item.sentiment,
             },
           });

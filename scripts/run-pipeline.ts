@@ -28,6 +28,7 @@ import {
   ProcessorError,
   type ProcessedItem,
   type SummaryInput,
+  type GeneratedSummary,
 } from '@/lib/claude/processor';
 import { generateDigest, DigestGeneratorError, formatDate } from '@/lib/digest';
 
@@ -160,7 +161,7 @@ async function runPipeline(date: Date): Promise<PipelineResult> {
   // Step 3: Generate summaries with Claude
   logStep(3, 4, 'Generating summaries with Claude...');
 
-  let summaries: Map<string, { id: string; summary: string; analysis: { extended_summary: string; sentiment: string } }>;
+  let summaries: Map<string, GeneratedSummary>;
   try {
     const summaryInputs: SummaryInput[] = processedItems.map((item) => ({
       id: item.id,

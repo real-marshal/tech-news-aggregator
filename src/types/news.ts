@@ -13,7 +13,6 @@ export interface Source {
 }
 
 export interface Analysis {
-  extended_summary: string;
   sentiment: string;
 }
 

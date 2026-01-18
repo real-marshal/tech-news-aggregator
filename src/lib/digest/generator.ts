@@ -68,7 +68,6 @@ export function getOutputPath(date: Date, outputDir: string): string {
  */
 function createDefaultAnalysis(): Analysis {
   return {
-    extended_summary: '',
     sentiment: '',
   };
 }
