@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, ChevronUp, ArrowUp, MessageSquare, ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronUp, ArrowUp, MessageSquare, ExternalLink, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { NewsItem, Category, SourceName, Source } from '@/types';
 
@@ -40,6 +40,51 @@ function formatNumber(num: number): string {
   return num.toString();
 }
 
+function formatFullTimestamp(date: Date): string {
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) {
+    return 'just now';
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  } else if (diffDays < 7) {
+    return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  } else {
+    return formatFullTimestamp(date);
+  }
+}
+
+function getOldestSourceTimestamp(sources: Source[]): Date | null {
+  if (sources.length === 0) return null;
+
+  let oldest: Date | null = null;
+  for (const source of sources) {
+    const date = new Date(source.createdAt);
+    if (!oldest || date < oldest) {
+      oldest = date;
+    }
+  }
+  return oldest;
+}
+
 function getTotalEngagement(item: NewsItem): { upvotes: number; comments: number } {
   let upvotes = 0;
   let comments = 0;
@@ -77,6 +122,7 @@ export function NewsCard({ item, isExpanded = false, onToggleExpand }: NewsCardP
   const { upvotes, comments } = getTotalEngagement(item);
   const sourcesText = formatSources(item);
   const discussionSource = getDiscussionSource(item.sources);
+  const createdAt = getOldestSourceTimestamp(item.sources);
 
   return (
     <article
@@ -171,7 +217,7 @@ export function NewsCard({ item, isExpanded = false, onToggleExpand }: NewsCardP
         </div>
       )}
 
-      {/* Footer: Engagement metrics and Expand button */}
+      {/* Footer: Engagement metrics, timestamp, and Expand button */}
       <div className="flex items-center justify-between pt-1 gap-2">
         <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
@@ -182,6 +228,15 @@ export function NewsCard({ item, isExpanded = false, onToggleExpand }: NewsCardP
             <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             {formatNumber(comments)}
           </span>
+          {createdAt && (
+            <span
+              className="flex items-center gap-1 cursor-default"
+              title={formatFullTimestamp(createdAt)}
+            >
+              <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              {formatRelativeTime(createdAt)}
+            </span>
+          )}
         </div>
         <button
           type="button"

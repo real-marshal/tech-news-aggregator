@@ -9,6 +9,7 @@ export interface Source {
   upvotes?: number;
   comments: number;
   subreddit?: string;
+  createdAt: string; // ISO 8601 timestamp of when the post was created
 }
 
 export interface Analysis {

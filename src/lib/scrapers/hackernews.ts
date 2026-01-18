@@ -114,6 +114,7 @@ function storyToScrapedItem(story: HNStory): HNScrapedItem {
       url: discussionUrl,
       points: story.score,
       comments: story.descendants ?? 0,
+      createdAt: new Date(story.time * 1000).toISOString(),
     },
   };
 }

@@ -135,6 +135,7 @@ function articleToScrapedItem(article: DevtoArticle): DevtoScrapedItem {
       url: discussionUrl,
       points: article.positive_reactions_count,
       comments: article.comments_count,
+      createdAt: article.published_at,
     },
   };
 }

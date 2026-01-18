@@ -150,6 +150,7 @@ function postToScrapedItem(post: RedditPost): RedditScrapedItem {
       upvotes: post.ups,
       comments: post.num_comments,
       subreddit: `r/${post.subreddit}`,
+      createdAt: new Date(post.created_utc * 1000).toISOString(),
     },
   };
 }

@@ -106,6 +106,7 @@ function storyToScrapedItem(story: LobstersStory): LobstersScrapedItem {
       url: discussionUrl,
       points: story.score,
       comments: story.comment_count,
+      createdAt: story.created_at,
     },
   };
 }
