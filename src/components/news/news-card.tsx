@@ -146,8 +146,18 @@ export function NewsCard({ item, isExpanded = false, onToggleExpand }: NewsCardP
       </div>
 
       {/* Headline */}
-      <h2 className="text-base sm:text-lg font-semibold leading-tight text-card-foreground">
-        {item.title}
+      <h2 className="text-base sm:text-lg font-semibold leading-tight">
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            'text-card-foreground hover:text-primary transition-colors',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded'
+          )}
+        >
+          {item.title}
+        </a>
       </h2>
 
       {/* Summary */}
@@ -170,23 +180,8 @@ export function NewsCard({ item, isExpanded = false, onToggleExpand }: NewsCardP
           </div>
 
           {/* Action Links */}
-          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 pt-2">
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                'inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 sm:py-1.5',
-                'text-sm font-medium min-h-[44px] sm:min-h-0',
-                'bg-primary text-primary-foreground',
-                'hover:bg-primary/90 transition-colors',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
-              )}
-            >
-              Read Article
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-            {discussionSource && (
+          {discussionSource && (
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 pt-2">
               <a
                 href={discussionSource.url}
                 target="_blank"
@@ -202,8 +197,8 @@ export function NewsCard({ item, isExpanded = false, onToggleExpand }: NewsCardP
                 View Discussion
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
