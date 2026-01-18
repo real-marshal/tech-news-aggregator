@@ -592,6 +592,87 @@
       },
       "dependsOn": [],
       "passes": true
+    },
+    {
+      "id": "US030",
+      "title": "Add progress feedback to Claude summary generation",
+      "priority": 2,
+      "description": "The pipeline's summary generation step takes 10-15 minutes for 80 items with no progress feedback. Users have no visibility into whether it's working or stuck. Add batch processing with progress logging.",
+      "acceptanceCriteria": [
+        "Process summaries in batches of 10-15 items instead of all at once",
+        "Log progress after each batch (e.g., '[3/8] Generated summaries for items 21-30...')",
+        "Show estimated time remaining if possible",
+        "Total pipeline time should not increase significantly"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US008"
+      ],
+      "passes": true
+    },
+    {
+      "id": "US031",
+      "title": "Display post creation date and time on news cards",
+      "priority": 2,
+      "description": "News cards currently don't show when the post was originally created. Add the exact date and time to each post so users know how fresh the content is.",
+      "acceptanceCriteria": [
+        "Scrape creation timestamp from each source (HN, Reddit, Lobsters, dev.to)",
+        "Store timestamp in the Source interface and JSON schema",
+        "Display formatted date/time on news cards (e.g., 'Jan 18, 2026 at 2:30 PM')",
+        "Use relative time for recent posts (e.g., '2 hours ago') with full timestamp on hover"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US003",
+        "US004",
+        "US005",
+        "US006"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US032",
+      "title": "Remove extended summary from news items",
+      "priority": 2,
+      "description": "The extended_summary field in the Analysis object adds little value and increases processing time. Remove it from the schema, Claude prompts, UI, and JSON output.",
+      "acceptanceCriteria": [
+        "Remove extended_summary from Analysis interface in types",
+        "Update Claude summary generation prompt to skip extended summary",
+        "Remove extended summary display from news card expand view",
+        "Update JSON schema to not include extended_summary",
+        "Faster summary generation due to reduced output"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US008"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US033",
+      "title": "Make article title a link instead of Read Article button",
+      "priority": 2,
+      "description": "Replace the 'Read Article' button with making the article title/header itself a clickable link to the original article. This is a more intuitive UX pattern.",
+      "acceptanceCriteria": [
+        "Remove 'Read Article' button from news card",
+        "Make article title (h2) a clickable link to the original URL",
+        "Link should open in new tab (target='_blank' with rel='noopener')",
+        "Title link should have appropriate hover styling",
+        "Maintain accessibility (proper link semantics)"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US018"
+      ],
+      "passes": false
     }
   ]
 }

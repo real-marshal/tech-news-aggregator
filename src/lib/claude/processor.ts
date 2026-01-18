@@ -1,4 +1,4 @@
-import { getClaudeClient, ClaudeClientError } from '@/lib/claude';
+import { getClaudeClient, ClaudeClientError, ClaudeClient } from '@/lib/claude';
 import type { MessageParam } from '@/lib/claude';
 import type { Category, Source, Analysis } from '@/types/news';
 import type { ScrapedItem } from '@/lib/scrapers/orchestrator';
@@ -441,6 +441,47 @@ function parseSummaryResponse(responseText: string): SummaryResponse {
   }
 }
 
+const BATCH_SIZE = 10;
+
+function formatTimeRemaining(seconds: number): string {
+  if (seconds < 60) {
+    return `${Math.round(seconds)}s`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.round(seconds % 60);
+  return `${minutes}m ${remainingSeconds}s`;
+}
+
+async function processSummaryBatch(
+  batchItems: SummaryInput[],
+  client: ClaudeClient
+): Promise<SummaryResponse> {
+  const formattedItems = formatItemsForSummary(batchItems);
+
+  const messages: MessageParam[] = [
+    {
+      role: 'user',
+      content: `Generate summaries and analysis for these tech news items:\n\n${formattedItems}`,
+    },
+  ];
+
+  const response = await client.sendMessage(messages, {
+    systemPrompt: SUMMARY_SYSTEM_PROMPT,
+    maxTokens: 8192,
+  });
+
+  const responseText = await client.extractText(response);
+
+  if (!responseText) {
+    throw new ProcessorError(
+      'Empty response from Claude for summaries',
+      'EMPTY_SUMMARY_RESPONSE'
+    );
+  }
+
+  return parseSummaryResponse(responseText);
+}
+
 export async function generateSummaries(
   items: SummaryInput[],
   config: ClaudeProcessorConfig = {}
@@ -453,54 +494,73 @@ export async function generateSummaries(
     };
   }
 
-  console.log(`Generating summaries for ${items.length} items with Claude...`);
+  const totalItems = items.length;
+  const totalBatches = Math.ceil(totalItems / BATCH_SIZE);
 
-  const formattedItems = formatItemsForSummary(items);
+  console.log(
+    `Generating summaries for ${totalItems} items in ${totalBatches} batches (batch size: ${BATCH_SIZE})...`
+  );
 
-  const messages: MessageParam[] = [
-    {
-      role: 'user',
-      content: `Generate summaries and analysis for these tech news items:\n\n${formattedItems}`,
-    },
-  ];
+  const summaries = new Map<string, GeneratedSummary>();
+  let processedCount = 0;
+  let failedCount = 0;
+  const batchTimes: number[] = [];
 
   try {
     const client = getClaudeClient();
-    const response = await client.sendMessage(messages, {
-      systemPrompt: SUMMARY_SYSTEM_PROMPT,
-      maxTokens: 8192,
-    });
 
-    const responseText = await client.extractText(response);
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const startIdx = batchIndex * BATCH_SIZE;
+      const endIdx = Math.min(startIdx + BATCH_SIZE, totalItems);
+      const batchItems = items.slice(startIdx, endIdx);
+      const batchNumber = batchIndex + 1;
 
-    if (!responseText) {
-      throw new ProcessorError(
-        'Empty response from Claude for summaries',
-        'EMPTY_SUMMARY_RESPONSE'
+      const batchStartTime = Date.now();
+
+      try {
+        const summaryResponse = await processSummaryBatch(batchItems, client);
+
+        for (const item of summaryResponse.items) {
+          summaries.set(item.id, {
+            id: item.id,
+            summary: item.summary,
+            analysis: {
+              extended_summary: item.extended_summary,
+              sentiment: item.sentiment,
+            },
+          });
+          processedCount++;
+        }
+
+        const batchFailedCount = batchItems.length - summaryResponse.items.length;
+        failedCount += batchFailedCount;
+      } catch (error) {
+        console.error(
+          `Batch ${batchNumber}/${totalBatches} failed: ${error instanceof Error ? error.message : String(error)}`
+        );
+        failedCount += batchItems.length;
+      }
+
+      const batchDuration = (Date.now() - batchStartTime) / 1000;
+      batchTimes.push(batchDuration);
+
+      // Calculate estimated time remaining
+      let etaMessage = '';
+      if (batchIndex < totalBatches - 1) {
+        const avgBatchTime =
+          batchTimes.reduce((a, b) => a + b, 0) / batchTimes.length;
+        const remainingBatches = totalBatches - batchNumber;
+        const estimatedRemaining = avgBatchTime * remainingBatches;
+        etaMessage = ` (ETA: ${formatTimeRemaining(estimatedRemaining)})`;
+      }
+
+      console.log(
+        `[${batchNumber}/${totalBatches}] Generated summaries for items ${startIdx + 1}-${endIdx}...${etaMessage}`
       );
     }
 
-    const summaryResponse = parseSummaryResponse(responseText);
-
-    const summaries = new Map<string, GeneratedSummary>();
-    let processedCount = 0;
-
-    for (const item of summaryResponse.items) {
-      summaries.set(item.id, {
-        id: item.id,
-        summary: item.summary,
-        analysis: {
-          extended_summary: item.extended_summary,
-          sentiment: item.sentiment,
-        },
-      });
-      processedCount++;
-    }
-
-    const failedCount = items.length - processedCount;
-
     console.log(
-      `Summary generation complete: ${processedCount}/${items.length} items processed`
+      `Summary generation complete: ${processedCount}/${totalItems} items processed`
     );
 
     return {
