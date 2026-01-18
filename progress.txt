@@ -42,3 +42,5 @@
   - SDK now uses Claude Code login authentication (run `claude` to login)
   - Falls back to ANTHROPIC_API_KEY if Claude Code not authenticated
   - Updated README.md and CLAUDE.md documentation
+2026-01-18T11:51:25.896Z: ✅ US028 completed in iteration 1
+2026-01-18T11:53:12.051Z: Starting US029: Update all dependencies to latest

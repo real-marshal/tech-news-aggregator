@@ -573,6 +573,25 @@
         "US008"
       ],
       "passes": true
+    },
+    {
+      "id": "US029",
+      "title": "Update all dependencies to latest",
+      "priority": 3,
+      "description": "Update all project dependencies to their latest versions to ensure security patches, bug fixes, and new features are available.",
+      "acceptanceCriteria": [
+        "Run bun update to update all dependencies",
+        "Verify no breaking changes in updated packages",
+        "Ensure build passes after updates",
+        "Ensure typecheck passes after updates",
+        "Test that the application still works correctly"
+      ],
+      "verification": {
+        "build": "bun run build",
+        "typecheck": "bun run typecheck"
+      },
+      "dependsOn": [],
+      "passes": true
     }
   ]
 }
