@@ -122,7 +122,7 @@ function formatItemsForClaude(items: ScrapedItem[]): string {
 function sanitizeJsonString(str: string): string {
   // Remove any BOM or invisible control characters that might interfere with JSON parsing
   // Replace various problematic characters while preserving valid JSON escape sequences
-  let result = str
+  const result = str
     // Remove BOM
     .replace(/^\uFEFF/, '')
     // Remove null bytes (can appear in UTF-16 encoded strings incorrectly passed as UTF-8)
@@ -409,7 +409,7 @@ function buildProcessedItems(
 
 export async function deduplicateAndCategorize(
   items: ScrapedItem[],
-  config: ClaudeProcessorConfig = {}
+  _config: ClaudeProcessorConfig = {}
 ): Promise<DeduplicationResult> {
   if (items.length === 0) {
     return {
@@ -667,7 +667,7 @@ async function processSummaryBatch(
 
 export async function generateSummaries(
   items: SummaryInput[],
-  config: ClaudeProcessorConfig = {}
+  _config: ClaudeProcessorConfig = {}
 ): Promise<SummaryGenerationResult> {
   if (items.length === 0) {
     return {

@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tech-news-aggregator
+  namespace: tech-news-aggregator
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  tls:
+    - hosts:
+        - tech.connectiqa.app
+      secretName: tech-news-aggregator-tls
+  rules:
+    - host: tech.connectiqa.app
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tech-news-aggregator
+                port:
+                  number: 80

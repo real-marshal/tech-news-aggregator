@@ -691,6 +691,26 @@
       },
       "dependsOn": [],
       "passes": true
+    },
+    {
+      "id": "US035",
+      "title": "Sort today's posts by hotness",
+      "priority": 2,
+      "description": "Ensure that news posts displayed for today are sorted by their hotness score in descending order, showing the most engaging content first.",
+      "acceptanceCriteria": [
+        "Today's posts are sorted by hotness_score in descending order",
+        "Sorting applies to the home page (today's digest)",
+        "Sorting works correctly after category filtering",
+        "Hottest items appear at the top of the list"
+      ],
+      "verification": {
+        "build": "bun run typecheck"
+      },
+      "dependsOn": [
+        "US011",
+        "US018"
+      ],
+      "passes": false
     }
   ]
 }

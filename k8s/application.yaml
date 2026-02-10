@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tech-news-aggregator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/real-marshal/tech-news-aggregator
+    targetRevision: master
+    path: k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tech-news-aggregator
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+  syncOptions:
+  - CreateNamespace=true

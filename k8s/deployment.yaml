@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tech-news-aggregator
+  namespace: tech-news-aggregator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tech-news-aggregator
+  template:
+    metadata:
+      labels:
+        app: tech-news-aggregator
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: static-files
+              mountPath: /usr/share/nginx/html
+              subPath: out
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: static-files
+          persistentVolumeClaim:
+            claimName: tech-news-data

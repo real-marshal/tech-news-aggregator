@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tech-news-aggregator-pipeline
+  namespace: tech-news-aggregator
+spec:
+  schedule: "0 5 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          restartPolicy: OnFailure
+          backoffLimit: 3
+          hostNetwork: true
+          containers:
+            - name: pipeline
+              image: ghcr.io/real-marshal/tech-news-aggregator:latest
+              command:
+                - sh
+                - -c
+                - bun run pipeline && bun run build
+              env:
+                - name: http_proxy
+                  value: http://127.0.0.1:1080
+                - name: https_proxy
+                  value: http://127.0.0.1:1080
+                - name: all_proxy
+                  value: socks5://127.0.0.1:1080
+                - name: no_proxy
+                  value: localhost,127.0.0.1
+              volumeMounts:
+                - name: data
+                  mountPath: /app/data
+                  subPath: data
+                - name: data
+                  mountPath: /app/out
+                  subPath: out
+              resources:
+                requests:
+                  memory: 64Mi
+                limits:
+                  memory: 512Mi
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: tech-news-data
