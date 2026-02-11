@@ -31,7 +31,7 @@ spec:
                 - name: all_proxy
                   value: socks5://127.0.0.1:1080
                 - name: no_proxy
-                  value: localhost,127.0.0.1
+                  value: localhost,127.0.0.1,.nip.io,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
               volumeMounts:
                 - name: data
                   mountPath: /app/data
