@@ -11,10 +11,10 @@ spec:
   jobTemplate:
     spec:
       activeDeadlineSeconds: 1800
+      backoffLimit: 3
       template:
         spec:
           restartPolicy: OnFailure
-          backoffLimit: 3
           hostNetwork: true
           containers:
             - name: pipeline
