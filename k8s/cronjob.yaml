@@ -19,6 +19,7 @@ spec:
           containers:
             - name: pipeline
               image: ghcr.io/real-marshal/tech-news-aggregator:latest
+              imagePullPolicy: Always
               command:
                 - sh
                 - -c
