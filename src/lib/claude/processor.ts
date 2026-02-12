@@ -8,6 +8,7 @@ import {
   sortByHotness,
   type BatchStats,
 } from '@/lib/hotness';
+import { parseItemsArray, type FieldDef } from '@/lib/schema-json-parser';
 
 export interface ProcessedItem {
   id: string;
@@ -119,218 +120,31 @@ function formatItemsForClaude(items: ScrapedItem[]): string {
   return JSON.stringify(formattedItems, null, 2);
 }
 
-function sanitizeJsonString(str: string): string {
-  // Remove any BOM or invisible control characters that might interfere with JSON parsing
-  // Replace various problematic characters while preserving valid JSON escape sequences
-  const result = str
-    // Remove BOM
-    .replace(/^\uFEFF/, '')
-    // Remove null bytes (can appear in UTF-16 encoded strings incorrectly passed as UTF-8)
-    .replace(/\u0000/g, '')
-    // Remove other control characters (except \n, \r, \t which are valid in JSON strings when escaped)
-    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    // Remove Unicode line/paragraph separators that can break JSON
-    .replace(/[\u2028\u2029]/g, ' ')
-    // Replace smart/curly quotes with straight quotes (escaped for JSON)
-    // These are often output by Claude when processing text that contains them
-    .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '\\"')  // Double quotes: " " „ ‟ ″ ‶ -> escaped
-    .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'"); // Single quotes: ' ' ‚ ‛ ′ ‵
-
-  return result;
-}
-
-function escapeUnescapedQuotesInStrings(json: string): string {
-  // This function attempts to fix unescaped double quotes within JSON string values
-  // It uses a state machine to track whether we're inside a JSON string value
-
-  const result: string[] = [];
-  let i = 0;
-  let inString = false;
-  let escapeNext = false;
-
-  while (i < json.length) {
-    const char = json[i];
-
-    if (escapeNext) {
-      result.push(char);
-      escapeNext = false;
-      i++;
-      continue;
-    }
-
-    if (char === '\\') {
-      result.push(char);
-      escapeNext = true;
-      i++;
-      continue;
-    }
-
-    if (char === '"') {
-      if (!inString) {
-        // Starting a string
-        inString = true;
-        result.push(char);
-        i++;
-        continue;
-      }
-
-      // We're inside a string and hit a quote
-      // Look ahead to see if this quote ends the string properly
-      // A proper ending quote should be followed by: , ] } : or whitespace then one of those
-      let j = i + 1;
-      while (j < json.length && /\s/.test(json[j])) {
-        j++;
-      }
-
-      const nextNonWhitespace = json[j];
-      if (nextNonWhitespace === ',' || nextNonWhitespace === ']' ||
-          nextNonWhitespace === '}' || nextNonWhitespace === ':' ||
-          nextNonWhitespace === undefined) {
-        // This is a proper closing quote
-        inString = false;
-        result.push(char);
-        i++;
-        continue;
-      }
-
-      // This quote is embedded in the string - it should be escaped
-      // But first check if it might start a new property name (after a value)
-      // If the text after looks like a property name pattern, we might have a truncated string
-      const textAfter = json.slice(i + 1, i + 50);
-      if (/^[a-z_][a-z0-9_]*"\s*:/i.test(textAfter)) {
-        // Looks like a property name - this might be a truncated string
-        // Close the current string here
-        inString = false;
-        result.push(char);
-        i++;
-        continue;
-      }
-
-      // This is an embedded quote that needs escaping
-      result.push('\\');
-      result.push(char);
-      i++;
-      continue;
-    }
-
-    result.push(char);
-    i++;
-  }
-
-  return result.join('');
-}
-
 function extractJsonFromResponse(responseText: string): string {
   let jsonStr = responseText.trim();
 
-  // Handle markdown code blocks (greedy match to get the last complete block)
   const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (jsonMatch) {
     jsonStr = jsonMatch[1].trim();
   }
 
-  // Sanitize the JSON string to remove problematic characters
-  jsonStr = sanitizeJsonString(jsonStr);
-
-  // Fix unescaped quotes within string values
-  jsonStr = escapeUnescapedQuotesInStrings(jsonStr);
-
-  // Try to find a complete JSON object if the response has extra content
-  // Look for the outermost { ... } structure
-  const firstBrace = jsonStr.indexOf('{');
-  if (firstBrace > 0) {
-    jsonStr = jsonStr.slice(firstBrace);
-  }
-
-  // Find the matching closing brace by counting braces
-  let braceCount = 0;
-  let lastValidIndex = -1;
-  let inString = false;
-  let escapeNext = false;
-
-  for (let i = 0; i < jsonStr.length; i++) {
-    const char = jsonStr[i];
-
-    if (escapeNext) {
-      escapeNext = false;
-      continue;
-    }
-
-    if (char === '\\' && inString) {
-      escapeNext = true;
-      continue;
-    }
-
-    if (char === '"') {
-      inString = !inString;
-      continue;
-    }
-
-    if (!inString) {
-      if (char === '{') {
-        braceCount++;
-      } else if (char === '}') {
-        braceCount--;
-        if (braceCount === 0) {
-          lastValidIndex = i;
-          break;
-        }
-      }
-    }
-  }
-
-  // If we found a complete JSON object, truncate any trailing content
-  if (lastValidIndex > 0 && lastValidIndex < jsonStr.length - 1) {
-    jsonStr = jsonStr.slice(0, lastValidIndex + 1);
-  }
-
   return jsonStr;
 }
 
-function parseClaudeResponse(responseText: string): ClaudeResponse {
-  let jsonStr = extractJsonFromResponse(responseText);
+const DEDUP_FIELDS: FieldDef[] = [
+  { name: 'title', type: 'string' },
+  { name: 'url', type: 'string' },
+  { name: 'category', type: 'string' },
+  { name: 'source_ids', type: 'string[]' },
+];
 
-  // Escape unescaped control characters inside JSON strings
-  // This handles cases where Claude outputs raw control characters in strings
-  // that should have been escaped
-  jsonStr = jsonStr.replace(
-    /"([^"\\]*(?:\\.[^"\\]*)*)"/g,
-    (match, content) => {
-      // Escape any unescaped control characters within the string content
-      const escaped = content
-        .replace(/[\x00-\x1f]/g, (char: string) => {
-          const code = char.charCodeAt(0);
-          if (code === 0x09) return '\\t';
-          if (code === 0x0a) return '\\n';
-          if (code === 0x0d) return '\\r';
-          return `\\u${code.toString(16).padStart(4, '0')}`;
-        });
-      return `"${escaped}"`;
-    }
-  );
+function parseClaudeResponse(responseText: string): ClaudeResponse {
+  const jsonStr = extractJsonFromResponse(responseText);
 
   try {
-    const parsed = JSON.parse(jsonStr) as ClaudeResponse;
+    const items = parseItemsArray<ClaudeResponseItem>(jsonStr, DEDUP_FIELDS);
 
-    if (!parsed.items || !Array.isArray(parsed.items)) {
-      throw new Error('Response missing items array');
-    }
-
-    // Validate each item
-    for (const item of parsed.items) {
-      if (!item.title || typeof item.title !== 'string') {
-        throw new Error('Item missing title');
-      }
-      if (!item.url || typeof item.url !== 'string') {
-        throw new Error('Item missing url');
-      }
-      if (!item.category || typeof item.category !== 'string') {
-        throw new Error('Item missing category');
-      }
-      if (!item.source_ids || !Array.isArray(item.source_ids)) {
-        throw new Error('Item missing source_ids array');
-      }
-
+    for (const item of items) {
       const validCategories: Category[] = [
         'ai-ml',
         'development',
@@ -343,15 +157,10 @@ function parseClaudeResponse(responseText: string): ClaudeResponse {
       }
     }
 
-    return parsed;
+    return { items };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-
-    // Log context to help debug parsing issues
     console.error('JSON parse error:', errorMsg);
-    console.error('Response length:', jsonStr.length);
-    console.error('Response start:', jsonStr.slice(0, 200));
-    console.error('Response end:', jsonStr.slice(-200));
 
     throw new ProcessorError(
       `Failed to parse Claude response: ${errorMsg}`,
@@ -584,37 +393,21 @@ function formatItemsForSummary(items: SummaryInput[]): string {
   return JSON.stringify(formattedItems, null, 2);
 }
 
+const SUMMARY_FIELDS: FieldDef[] = [
+  { name: 'id', type: 'string' },
+  { name: 'summary', type: 'string' },
+  { name: 'sentiment', type: 'string' },
+];
+
 function parseSummaryResponse(responseText: string): SummaryResponse {
   const jsonStr = extractJsonFromResponse(responseText);
 
   try {
-    const parsed = JSON.parse(jsonStr) as SummaryResponse;
-
-    if (!parsed.items || !Array.isArray(parsed.items)) {
-      throw new Error('Response missing items array');
-    }
-
-    // Validate each item
-    for (const item of parsed.items) {
-      if (!item.id || typeof item.id !== 'string') {
-        throw new Error('Item missing id');
-      }
-      if (!item.summary || typeof item.summary !== 'string') {
-        throw new Error('Item missing summary');
-      }
-      if (!item.sentiment || typeof item.sentiment !== 'string') {
-        throw new Error('Item missing sentiment');
-      }
-    }
-
-    return parsed;
+    const items = parseItemsArray<SummaryResponseItem>(jsonStr, SUMMARY_FIELDS);
+    return { items };
   } catch (error) {
-    // Log more details about the parsing failure for debugging
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error('Summary JSON parse error:', errorMsg);
-    console.error('Response length:', jsonStr.length);
-    console.error('Response start:', jsonStr.slice(0, 200));
-    console.error('Response end:', jsonStr.slice(-200));
 
     throw new ProcessorError(
       `Failed to parse summary response: ${errorMsg}`,
