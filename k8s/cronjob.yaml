@@ -23,7 +23,7 @@ spec:
               command:
                 - sh
                 - -c
-                - bun run pipeline && bun run build
+                - bun run pipeline && bun run build && rm -rf /app/out-mount/* && cp -r /app/out/* /app/out-mount/
               env:
                 - name: http_proxy
                   value: http://127.0.0.1:1080
@@ -38,7 +38,7 @@ spec:
                   mountPath: /app/data
                   subPath: data
                 - name: data
-                  mountPath: /app/out
+                  mountPath: /app/out-mount
                   subPath: out
                 - name: data
                   mountPath: /root/.claude
