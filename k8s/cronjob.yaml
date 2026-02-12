@@ -39,6 +39,9 @@ spec:
                 - name: data
                   mountPath: /app/out
                   subPath: out
+                - name: data
+                  mountPath: /root/.claude
+                  subPath: claude-auth
               resources:
                 requests:
                   memory: 64Mi
