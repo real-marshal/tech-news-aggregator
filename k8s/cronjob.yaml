@@ -47,7 +47,7 @@ spec:
                 requests:
                   memory: 64Mi
                 limits:
-                  memory: 1Gi
+                  memory: 2Gi
           volumes:
             - name: data
               persistentVolumeClaim:
